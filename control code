@@ -1,0 +1,67 @@
+#define HEATER_PIN 6        
+#define THERMISTOR_PIN A1   
+float desiredTemp = 0.0;    
+const float Kp = 250.0;      
+const float maxPWM = 255.0;  
+const float minPWM = 0.0;   
+
+void setup() {
+  Serial.begin(9600);       
+  pinMode(HEATER_PIN, OUTPUT);
+  analogWrite(HEATER_PIN, 0); 
+
+  
+  Serial.println("Enter the desired temperature (25 - 35°C):");
+}
+
+void loop() {
+  
+  if (Serial.available() > 0) {
+    String input = Serial.readStringUntil('\n'); 
+    float inputTemp = input.toFloat();          
+
+    
+    if (inputTemp >= 25.0 && inputTemp <= 35.0) {
+      desiredTemp = inputTemp;
+      Serial.print("Desired temperature set to: ");
+      Serial.println(desiredTemp);
+    } else {
+      Serial.println("Invalid input! Please enter a value between 25 and 35.");
+      return; 
+    }
+  }
+
+  
+  if (desiredTemp == 0.0) {
+    return;
+  }
+
+  
+  int adcValue = analogRead(THERMISTOR_PIN);
+  float thermistorVoltage = (adcValue / 1023.0) * 5.0;
+
+  
+  float temperature = (thermistorVoltage - 4.07) / -0.06627;
+
+  
+  Serial.print("Current Temperature: ");
+  Serial.println(temperature);
+
+  
+  float error = desiredTemp - temperature;
+  float controlSignal = Kp * error; 
+
+  
+  controlSignal = constrain(controlSignal, minPWM, maxPWM);
+
+  
+  analogWrite(HEATER_PIN, (int)controlSignal);
+
+  
+  Serial.print("Error: ");
+  Serial.println(error);
+  Serial.print("Control Signal (PWM): ");
+  Serial.println(controlSignal);
+
+  delay(1000); 
+}
